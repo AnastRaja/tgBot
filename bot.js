@@ -24,7 +24,7 @@
 //     }
 //   }
 // });
-
+require("dotenv").config();
 const TelegramBot = require("node-telegram-bot-api");
 const {GoogleGenAI} = require("@google/genai");
 const Parser = require("rss-parser");
@@ -32,12 +32,11 @@ const cron = require("node-cron");
 const mongoose = require("mongoose");
 
 // --- CONFIGURATION --- //
-const TELEGRAM_BOT_TOKEN = "7102869832:AAHPeeFgdsr6Ess7s-YN1zt8aRCapJN-RWI";
-const GEMINI_API_KEY = "AIzaSyAsi28aI9hC7gsq8LLt6yuAcVc59aQx-Ao";
-const TELEGRAM_CHAT_ID = "-1002679482222"; // Get from message.chat.id
-const RSS_FEED_URL = "https://www.coindesk.com/arc/outboundfeeds/rss/";
-const MONGODB_URI =
-  "mongodb+srv://digitaladroits:CjGgmE7ZRcHXJ79h@cluster0.44omql4.mongodb.net/blogapi";
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const RSS_FEED_URL = process.env.RSS_FEED_URL;
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // --- SETUP --- //
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, {polling: true});
