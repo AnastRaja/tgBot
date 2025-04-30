@@ -85,43 +85,105 @@ async function fetchCryptoNews() {
 }
 
 // --- FUNCTION: Summarize with Gemini --- //
-async function summarizeNews(title, content, url) {
-  try {
-    const res = await ai.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: [
-        {
-          role: "user",
-          parts: [
-            {
-              text: `
-  Summarize this crypto news article in a casual, friendly tone like you're chatting with a buddy.
-  Keep it short and fun. End with 👉 [Read full article](${url})
-  
-  Title: ${title}
-  Content: ${content}
+async function summarizeNews(title, content, url, retries = 3) {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [
+              {
+                text: `
+Summarize this crypto news article in a casual, friendly tone like you're chatting with a buddy.
+Keep it short and fun. End with 👉 [Read full article](${url})
+
+Title: ${title}
+Content: ${content}
               `,
-            },
-          ],
-        },
-      ],
-    });
+              },
+            ],
+          },
+        ],
+      });
 
-    // Log the entire response object to ensure we understand its structure
-    console.log("Gemini API Response:", JSON.stringify(res, null, 2));
-
-    // Accessing the summary from the 'candidates' array
-    if (res && res.candidates && res.candidates.length > 0) {
-      const summary = res.candidates[0].content.parts[0].text; // Get the text from the first candidate
-      return summary;
-    } else {
-      return "Sorry, no summary could be generated.";
+      if (res?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return res.candidates[0].content.parts[0].text;
+      } else {
+        return "Sorry, no summary could be generated.";
+      }
+    } catch (err) {
+      console.error(`Attempt ${attempt} failed:`, err.message);
+      if (attempt < retries) {
+        console.log(`⏳ Retrying in 5 seconds...`);
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // wait 5 seconds
+      } else {
+        return "Sorry, Gemini API was unavailable after multiple tries.";
+      }
     }
-  } catch (err) {
-    console.error("Error in summarizeNews:", err.message);
-    return "Sorry, there was an error generating the summary.";
   }
 }
+
+async function generateWelcomeMessage(name, retries = 3) {
+  const prompt = `
+Welcome a new group member named ${name} with a joyful, casual tone.
+Let them know that this bot keeps everyone up to date with the latest crypto news—even if they miss a beat!
+Encourage them to stay tuned and enjoy the updates. Keep it friendly and enthusiastic!
+  `;
+
+  const footer = `\n\n🌐 *Need help with marketing, mobile or web development?* [Visit our website](https://adroitsdigital.com) or reach out to us!`;
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const res = await ai.models.generateContent({
+        model: "gemini-2.0-flash",
+        contents: [
+          {
+            role: "user",
+            parts: [{text: prompt}],
+          },
+        ],
+      });
+
+      if (res?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        return res.candidates[0].content.parts[0].text + footer;
+      } else {
+        return (
+          `👋 Welcome ${name}! This bot keeps you updated with the latest in the crypto market. Stay tuned!` +
+          footer
+        );
+      }
+    } catch (err) {
+      console.error(`Error generating welcome message: ${err.message}`);
+      if (attempt < retries) {
+        console.log(`⏳ Retrying in 5 seconds...`);
+        await new Promise((resolve) => setTimeout(resolve, 5000));
+      } else {
+        return (
+          `👋 Welcome ${name}! This bot keeps you updated with the latest in the crypto market. Stay tuned!` +
+          footer
+        );
+      }
+    }
+  }
+}
+
+bot.on("new_chat_members", async (msg) => {
+  const newMembers = msg.new_chat_members;
+  for (const member of newMembers) {
+    const name = member.first_name || "there";
+    const welcomeMessage = await generateWelcomeMessage(name);
+    try {
+      await bot.sendMessage(msg.chat.id, welcomeMessage, {
+        parse_mode: "Markdown",
+      });
+      console.log(`👋 Sent welcome message to ${name}`);
+    } catch (err) {
+      console.error("Error sending welcome message:", err.message);
+    }
+  }
+});
 
 // --- FUNCTION: Send News --- //
 // --- SEND NEWS --- //
@@ -150,15 +212,15 @@ bot.onText(/\/news/, async (msg) => {
   await sendCryptoNews(msg.chat.id);
 });
 
-// // --- Auto Post Hourly --- //
-// cron.schedule("0 * * * *", async () => {
-//   await sendCryptoNews(TELEGRAM_CHAT_ID);
-// });
-
-cron.schedule("*/1 * * * *", async () => {
-  // Change cron for 1-minute interval for testing
+// --- Auto Post Hourly --- //
+cron.schedule("0 * * * *", async () => {
   await sendCryptoNews(TELEGRAM_CHAT_ID);
 });
+
+// cron.schedule("*/1 * * * *", async () => {
+//   // Change cron for 1-minute interval for testing
+//   await sendCryptoNews(TELEGRAM_CHAT_ID);
+// });
 
 //CryptoNewsAdroits
 //@Adroits_Crypto_News_bot
