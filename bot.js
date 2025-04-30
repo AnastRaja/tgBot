@@ -150,15 +150,15 @@ bot.onText(/\/news/, async (msg) => {
   await sendCryptoNews(msg.chat.id);
 });
 
-// // --- Auto Post Hourly --- //
-// cron.schedule("0 * * * *", async () => {
-//   await sendCryptoNews(TELEGRAM_CHAT_ID);
-// });
+ // --- Auto Post Hourly --- //
+ cron.schedule("0 * * * *", async () => {
+   await sendCryptoNews(TELEGRAM_CHAT_ID);
+ });
 
-cron.schedule("*/1 * * * *", async () => {
+//cron.schedule("*/1 * * * *", async () => {
   // Change cron for 1-minute interval for testing
-  await sendCryptoNews(TELEGRAM_CHAT_ID);
-});
+ // await sendCryptoNews(TELEGRAM_CHAT_ID);
+//});
 
 //CryptoNewsAdroits
 //@Adroits_Crypto_News_bot
